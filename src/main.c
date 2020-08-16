@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <asm/termios.h>
-#include <asm/ioctls.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -20,15 +20,15 @@ extern int ioctl(int d, unsigned long request, ...);
 static int
 serial_open(const char *device)
 {
-  struct termios2 settings;
+  struct termios settings;
   int fd;
   fd = open(device, O_RDWR);
   if (fd < 0) {
     perror("open failed");
     return -1;
   }
-  if (ioctl(fd, TCGETS2, &settings) < 0) {
-    perror("ioctl TCGETS2 failed");
+  if (tcgetattr(fd, &settings) < 0) {
+    perror("tcgetattr failed");
     close(fd);
     return -1;
   }
@@ -37,12 +37,17 @@ serial_open(const char *device)
   settings.c_iflag |= IGNBRK | IGNPAR;
   settings.c_oflag &= ~OPOST;
   settings.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+#if defined (__LINUX__)
   settings.c_cflag &= ~(CSIZE | PARODD | CBAUD | PARENB);
   settings.c_cflag |= CS8 | BOTHER | CREAD;
+#else
+  settings.c_cflag &= ~(CSIZE | PARODD | PARENB);
+  settings.c_cflag |= CS8 | CREAD;
+#endif
   settings.c_ispeed = BPS;
   settings.c_ospeed = BPS;
-  if (ioctl(fd, TCSETS2, &settings) < 0) {
-    perror("ioctl TCSETS2 failed");
+  if (tcsetattr(fd, TCSANOW, &settings) < 0) {
+    perror("tcsetattr failed");
     close(fd);
     return -1;
   }
