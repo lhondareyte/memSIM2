@@ -24,7 +24,7 @@ serial_open(const char *device)
   int fd;
   fd = open(device, O_RDWR);
   if (fd < 0) {
-    perror("open failed");
+    perror(device);
     return -1;
   }
   if (tcgetattr(fd, &settings) < 0) {
@@ -37,7 +37,7 @@ serial_open(const char *device)
   settings.c_iflag |= IGNBRK | IGNPAR;
   settings.c_oflag &= ~OPOST;
   settings.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-#if defined (__LINUX__)
+#if defined (__linux__)
   settings.c_cflag &= ~(CSIZE | PARODD | CBAUD | PARENB);
   settings.c_cflag |= CS8 | BOTHER | CREAD;
 #else
@@ -210,7 +210,11 @@ main(int argc, char *argv[])
   const struct MemType *mem_type = &memory_types[3];
   char emu_enable = 'D';
   char selftest = 'N';
+#if defined (__linux__)
   char *device = "/dev/ttyUSB0";
+#elif defined (__FreeBSD__)
+  char *device = "/dev/cuaU0";
+#endif
   int opt;
   char emu_cmd[16+1];
   char emu_reply[16+1];
